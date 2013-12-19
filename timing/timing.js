@@ -23,9 +23,8 @@
 
 var webpage   = require('webpage');
 var system    = require('system');
-var fs        = require('fs');
-var finished  = 0;
-var addresses = [];
+var util      = require('../common/util');
+var args      = system.args.copyArgs();
 
 /***********************************************************
  * Add any domains you wish to exclude to this array.
@@ -39,47 +38,37 @@ function usage() {
     phantom.exit();
 }
 
-if (system.args.length === 1) {
+if (args.length === 0) {
     usage();
 }
 
-function trim(str) {
-    return str.replace(/^\s+/,'').replace(/\s+$/,'');
+var json      = args.getArg(['--json', '-j'], false);
+var addresses = util.parsePaths(args.shift());
+var finished  = 0;
+
+if (addresses.length === 0) {
+    usage();
 }
 
-// remove unimportant args
-var jsonIndex = system.args.indexOf('--json');
-var json = (jsonIndex !== -1);
-var urls;
-var i = 0;
-system.args.forEach(function(arg) {
-    if (i !== 0 && i !== jsonIndex) {
-        urls = arg;
+var results = [];
+var limit   = 15;
+var running = 1;
+
+function launcher(){
+    running--;
+    while(running < limit && addresses.length > 0){
+        running++;
+        collectData(addresses.shift());
     }
-    i++;
-});
-
-if (fs.exists(system.args[1])) {
-    fs.read(system.args[1])
-        .split('\n')
-        .forEach(function(line) {
-            if (line !== '') {
-                addresses.push(line);
-            }
-        });
-} else {
-    system.args[1].split(',').forEach(function(item) {
-        addresses.push(trim(item));
-    });
+    if(running < 1 && addresses.length < 1){
+        if (json) {
+            console.dir(results);
+        }
+        phantom.exit();
+    }
 }
 
-if (!addresses || addresses.length === 0) {
-    usage();
-}
-
-var results = []; // if --json
-
-addresses.forEach(function(address) {
+function collectData(address) {
     var t = Date.now();
     var page = webpage.create();
 
@@ -99,14 +88,13 @@ addresses.forEach(function(address) {
                 console.log('> took ' + t + ' msec');
                 console.log(' ');
             }
-            finished++;
         }
-        if (finished === addresses.length) {
-            if (json) {
-                console.log(JSON.stringify(results, null, 2));
-            }
-            phantom.exit();
-        }
+
+        (page.close||page.release)();
+        launcher();
+        return;
     });
-});
+}
+
+launcher();
 

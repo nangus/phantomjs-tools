@@ -22,97 +22,34 @@
  *
  ***********************************************************/
 
-var webpage   = require('webpage');
-var system    = require('system');
-var fs        = require('fs');
-var finished  = 0;
-var addresses = [];
-
-/***********************************************************
- * Add any domains you wish to exclude to this array.
- *
- * Domains added to this Array will be excluded in addition
- * to an domains passed through the second argument.
- ***********************************************************/
-var local_domains = [
-    // domains to be excluded, e.g.:
-    // "www.example.com"
-];
+var webpage = require('webpage');
+var system  = require('system');
+var util    = require('../common/util');
+var args    = system.args.copyArgs();
 
 function usage() {
     console.log('Usage: external.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json]');
     phantom.exit();
 }
 
-if (system.args.length === 1) {
+if (args.length === 0) {
     usage();
 }
 
-function trim(str) {
-    return str.replace(/^\s+/,'').replace(/\s+$/,'');
-}
+var json      = args.getArg(['--json', '-j'], false);
+var addresses = util.parsePaths(args.shift());
+var excludes  = util.parsePaths(args.shift());
+var finished  = 0;
 
-// remove unimportant args
-var jsonIndex = system.args.indexOf('--json');
-var json = (jsonIndex !== -1);
-var args = [];
-var i = 0;
-system.args.forEach(function(arg) {
-    if (i !== 0 && i !== jsonIndex) {
-        args.push(arg);
-    }
-    i++;
-});
-
-function parsePaths(str) {
-    var result = [];
-    if (!str) return result;
-
-    if (fs.exists(str)) {
-        fs.read(str)
-            .split('\n')
-            .forEach(function(line) {
-                if (line !== '') {
-                    result.push(line);
-                }
-            });
-    } else {
-        str.split(',').forEach(function(item) {
-            result.push(trim(item));
-        });
-    }
-    return result;
-}
-
-// parse urls
-addresses = addresses.concat(parsePaths(args[0]));
-
-// parse excludes
-local_domains = local_domains.concat(parsePaths(args[1]));
-
-if (!addresses || addresses.length === 0) {
+if (addresses.length === 0) {
     usage();
-}
-
-function isLocal(path) {
-    var matched = false;
-    local_domains.forEach(function(domain) {
-        if (path.match('^https?://[^/]*'+domain) || path.match('^//[^/]*'+domain)) {
-            matched = true;
-        }
-    });
-    return matched;
-}
-
-function domain(url) {
-    return url.match("^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)")[1];
 }
 
 function flattenAndTallySuccesses(reqs) {
     var ret = [];
     reqs.forEach(function(req) {
         if (req.responded) {
-            url = domain(req.url);
+            url = util.domain(req.url);
             var exists = false;
             var index = 0;
             ret.forEach(function(u) {
@@ -134,7 +71,7 @@ function flattenAndTallyFailures(reqs) {
     var ret = [];
     reqs.forEach(function(req) {
         if (!req.responded) {
-            url = domain(req.url);
+            url = util.domain(req.url);
             var exists = false;
             var index = 0;
             ret.forEach(function(u) {
@@ -153,9 +90,25 @@ function flattenAndTallyFailures(reqs) {
 }
 
 var results = [];
+var limit   = 15;
+var running = 1;
 
-addresses.forEach(function(address) {
-    local_domains.push(address);
+function launcher(){
+    running--;
+    while(running < limit && addresses.length > 0){
+        running++;
+        collectData(addresses.shift());
+    }
+    if(running < 1 && addresses.length < 1){
+        if (json) {
+            console.dir(results);
+        }
+        phantom.exit();
+    }
+}
+
+function collectData(address) {
+    excludes.push(util.domain(address));
 
     var t = Date.now();
     var page = webpage.create();
@@ -167,83 +120,34 @@ addresses.forEach(function(address) {
         } else {
             t = Date.now() - t;
 
-            var successes = flattenAndTallySuccesses(requests)
-                            .sort(function(a,b) {
-                                if (a.count < b.count) {
-                                    return 1;
-                                }
-                                if (a.count > b.count) {
-                                    return -1;
-                                }
-                                return 0;
-                            });
-
-            var failures = flattenAndTallyFailures(requests)
-                            .sort(function(a,b) {
-                                if (a.count < b.count) {
-                                    return 1;
-                                }
-                                if (a.count > b.count) {
-                                    return -1;
-                                }
-                                return 0;
-                            });
+            var successes = flattenAndTallySuccesses(requests).sort(util.reqSort);
+            var failures  = flattenAndTallyFailures(requests).sort(util.reqSort);
 
             if (json) {
-                var reqs = [];
-
-                successes.forEach(function(item) {
-                    item.successful = true;
-                    reqs.push(item);
-                });
-
-                failures.forEach(function(item) {
-                    item.successful = false;
-                    reqs.push(item);
-                });
-
-                results.push({
-                    address: address,
-                    complete: t,
-                    requests: reqs
+                util.doJSON(address, t, successes, failures, function(res) {
+                    results.push(res);
                 });
             } else {
-                console.log('Regarding: ' + address);
-                console.log('> took ' + t + ' msec');
-                console.log(' ');
-                console.log('External Requests:');
-
-                successes.forEach(function(url) {
-                    console.log(' - ' + url.url + ' [' + url.count + ']');
-                });
-                console.log(' ');
-                if (failures.length > 0) {
-                    console.log('Failed Requests:');
-                    failures.forEach(function(url) {
-                        console.log(' - ' + url.url + ' [' + url.count + ']');
+                util.doTEXT(address, t, successes, failures, function(res) {
+                    res.forEach(function(url) {
+                        console.log('* ' + url.url + ' [' + url.count + ']');
                     });
-                    console.log(' ');
-                }
+                });
             }
         }
-        finished++;
 
-        if (finished === addresses.length) {
-            if (json) {
-                console.dir(results);
-            }
-            phantom.exit();
-        }
+        (page.close||page.release)();
+        launcher();
     });
 
     page.onResourceRequested = function(data, request) {
-        if (!isLocal(data.url)) {
+        if (!util.isLocal(excludes, data.url)) {
             requests.push({ url: data.url, id: data.id });
         }
     };
 
     page.onResourceReceived = function(response) {
-        if (!isLocal(response.url)) {
+        if (!util.isLocal(excludes, response.url)) {
             var index = 0;
             requests.forEach(function(request) {
                 if (request.url === response.url && request.id === response.id) {
@@ -253,9 +157,6 @@ addresses.forEach(function(address) {
             });
         }
     };
-});
-
-console.dir = function dir(obj) {
-    console.log(JSON.stringify(obj, null, 2));
 }
 
+launcher();
