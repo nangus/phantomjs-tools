@@ -24,7 +24,7 @@
 
 var webpage = require('webpage');
 var system  = require('system');
-var util    = require('../common/util');
+var util    = require('../common/util.noj.1');
 var args    = system.args.copyArgs();
 
 
@@ -39,6 +39,7 @@ if (args.length === 0) {
 
 var json        = args.getArg(['--json', '-j'], false);
 var mysql       = args.getArg(['--mysql', '-m'], true);
+var limit       = parseInt(args.getArg(['--limit', '-l'], true)) || 5;
 var addresses   = util.parsePaths(args.shift());
 var excludes    = util.parsePaths(args.shift());
 var finished    = 0;
@@ -62,7 +63,7 @@ function flattenAndTallySuccesses(reqs) {
                 index++;
             });
             if (!exists) {
-                ret.push({ url: url, count: 1 });
+                ret.push({ referer: util.domain(req.referer), url: url, count: 1 });
             }
         }
     });
@@ -73,7 +74,7 @@ function flattenAndTallyFailures(reqs) {
     var ret = [];
     reqs.forEach(function(req) {
         if (!req.responded) {
-            url = util.domain(req.url);
+            url = req.url;
             var exists = false;
             var index = 0;
             ret.forEach(function(u) {
@@ -84,7 +85,7 @@ function flattenAndTallyFailures(reqs) {
                 index++;
             });
             if (!exists) {
-                ret.push({ url: url, count: 1 });
+                ret.push({ referer: util.domain(req.referer), url: url, count: 1 });
             }
         }
     });
@@ -92,12 +93,12 @@ function flattenAndTallyFailures(reqs) {
 }
 
 var results     = [];
-var limit       = 15;
 var running     = 1;
 var writingHttp = 0;
 
-function launcher(){
-    running--;
+function launcher(runs) {
+    console.log('running '+running+ ' writingHttp ' + writingHttp + ' runs '+runs);
+    if(runs) running--;
     while(running < limit && addresses.length > 0){
         running++;
         collectData(addresses.shift());
@@ -138,18 +139,18 @@ function collectData(address) {
             } else {
                 util.doTEXT(address, t, successes, failures, function(res) {
                     res.forEach(function(url) {
-                        console.log('* ' + url.url + ' [' + url.count + ']');
+                        console.log('* ' + url.referer + '\n  -> ' + url.url + ' [' + url.count + ']');
                     });
                 });
             }
         }
 
         (page.close||page.release)();
-        launcher();
+        launcher(true);
     });
     page.onResourceRequested = function(data, request) {
         if (!util.isLocal(excludes, data.url)) {
-            requests.push({ url: data.url, id: data.id });
+            requests.push({ referer: util.referer(data.headers), url: data.url, id: data.id });
         }
     };
 
@@ -166,4 +167,4 @@ function collectData(address) {
     };
 }
 
-launcher();
+launcher(true);
