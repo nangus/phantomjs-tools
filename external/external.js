@@ -27,9 +27,8 @@ var system  = require('system');
 var util    = require('../common/util');
 var args    = system.args.copyArgs();
 
-
 function usage() {
-    console.log('Usage: external.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json] [--mysql URL]');
+    console.log('Usage: external.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json]');
     phantom.exit();
 }
 
@@ -37,11 +36,10 @@ if (args.length === 0) {
     usage();
 }
 
-var json        = args.getArg(['--json', '-j'], false);
-var mysql       = args.getArg(['--mysql', '-m'], true);
-var addresses   = util.parsePaths(args.shift());
-var excludes    = util.parsePaths(args.shift());
-var finished    = 0;
+var json      = args.getArg(['--json', '-j'], false);
+var addresses = util.parsePaths(args.shift());
+var excludes  = util.parsePaths(args.shift());
+var finished  = 0;
 
 if (addresses.length === 0) {
     usage();
@@ -91,10 +89,9 @@ function flattenAndTallyFailures(reqs) {
     return ret;
 }
 
-var results     = [];
-var limit       = 15;
-var running     = 1;
-var writingHttp = 0;
+var results = [];
+var limit   = 15;
+var running = 1;
 
 function launcher(){
     running--;
@@ -102,7 +99,7 @@ function launcher(){
         running++;
         collectData(addresses.shift());
     }
-    if(running < 1 && addresses.length < 1 && writingHttp < 1){
+    if(running < 1 && addresses.length < 1){
         if (json) {
             console.dir(results);
         }
@@ -126,12 +123,7 @@ function collectData(address) {
             var successes = flattenAndTallySuccesses(requests).sort(util.reqSort);
             var failures  = flattenAndTallyFailures(requests).sort(util.reqSort);
 
-            if (mysql) {
-                writingHttp++;
-                util.doJSON(address, t, successes, failures, function(res) {
-                    util.pushMysql(mysql,res);
-                });
-            } else if (json) {
+            if (json) {
                 util.doJSON(address, t, successes, failures, function(res) {
                     results.push(res);
                 });
@@ -147,6 +139,7 @@ function collectData(address) {
         (page.close||page.release)();
         launcher();
     });
+
     page.onResourceRequested = function(data, request) {
         if (!util.isLocal(excludes, data.url)) {
             requests.push({ url: data.url, id: data.id });

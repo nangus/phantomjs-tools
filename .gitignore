@@ -8,8 +8,6 @@ lib-cov
 *.gz
 *.txt
 
-urls
-
 pids
 logs
 results
