@@ -100,7 +100,7 @@ function pushMysql(url,data){
 
         (pg.close||pg.release)();
         writingHttp--;
-        launcher();
+        launcher(false);
 
     });
 }
