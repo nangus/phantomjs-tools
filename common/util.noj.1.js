@@ -100,7 +100,11 @@ function pushMysql(url,data){
 
         (pg.close||pg.release)();
         writingHttp--;
+<<<<<<< HEAD
         launcher();
+=======
+        launcher(false);
+>>>>>>> 9ff0c5d38f184c3454915f76c771e1eca94a55ad
 
     });
 }

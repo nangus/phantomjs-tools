@@ -24,7 +24,11 @@
 
 var webpage = require('webpage');
 var system  = require('system');
+<<<<<<< HEAD
 var util    = require('../common/util');
+=======
+var util    = require('../common/util.noj.1');
+>>>>>>> 9ff0c5d38f184c3454915f76c771e1eca94a55ad
 var args    = system.args.copyArgs();
 
 
@@ -39,6 +43,10 @@ if (args.length === 0) {
 
 var json        = args.getArg(['--json', '-j'], false);
 var mysql       = args.getArg(['--mysql', '-m'], true);
+<<<<<<< HEAD
+=======
+var limit       = parseInt(args.getArg(['--limit', '-l'], true)) || 5;
+>>>>>>> 9ff0c5d38f184c3454915f76c771e1eca94a55ad
 var addresses   = util.parsePaths(args.shift());
 var excludes    = util.parsePaths(args.shift());
 var finished    = 0;
@@ -62,7 +70,11 @@ function flattenAndTallySuccesses(reqs) {
                 index++;
             });
             if (!exists) {
+<<<<<<< HEAD
                 ret.push({ url: url, count: 1 });
+=======
+                ret.push({ referer: util.domain(req.referer), url: url, count: 1 });
+>>>>>>> 9ff0c5d38f184c3454915f76c771e1eca94a55ad
             }
         }
     });
@@ -73,7 +85,11 @@ function flattenAndTallyFailures(reqs) {
     var ret = [];
     reqs.forEach(function(req) {
         if (!req.responded) {
+<<<<<<< HEAD
             url = util.domain(req.url);
+=======
+            url = req.url;
+>>>>>>> 9ff0c5d38f184c3454915f76c771e1eca94a55ad
             var exists = false;
             var index = 0;
             ret.forEach(function(u) {
@@ -84,7 +100,11 @@ function flattenAndTallyFailures(reqs) {
                 index++;
             });
             if (!exists) {
+<<<<<<< HEAD
                 ret.push({ url: url, count: 1 });
+=======
+                ret.push({ referer: util.domain(req.referer), url: url, count: 1 });
+>>>>>>> 9ff0c5d38f184c3454915f76c771e1eca94a55ad
             }
         }
     });
@@ -92,12 +112,21 @@ function flattenAndTallyFailures(reqs) {
 }
 
 var results     = [];
+<<<<<<< HEAD
 var limit       = 15;
 var running     = 1;
 var writingHttp = 0;
 
 function launcher(){
     running--;
+=======
+var running     = 1;
+var writingHttp = 0;
+
+function launcher(runs) {
+    console.log('running '+running+ ' writingHttp ' + writingHttp + ' runs '+runs);
+    if(runs) running--;
+>>>>>>> 9ff0c5d38f184c3454915f76c771e1eca94a55ad
     while(running < limit && addresses.length > 0){
         running++;
         collectData(addresses.shift());
@@ -138,18 +167,30 @@ function collectData(address) {
             } else {
                 util.doTEXT(address, t, successes, failures, function(res) {
                     res.forEach(function(url) {
+<<<<<<< HEAD
                         console.log('* ' + url.url + ' [' + url.count + ']');
+=======
+                        console.log('* ' + url.referer + '\n  -> ' + url.url + ' [' + url.count + ']');
+>>>>>>> 9ff0c5d38f184c3454915f76c771e1eca94a55ad
                     });
                 });
             }
         }
 
         (page.close||page.release)();
+<<<<<<< HEAD
         launcher();
     });
     page.onResourceRequested = function(data, request) {
         if (!util.isLocal(excludes, data.url)) {
             requests.push({ url: data.url, id: data.id });
+=======
+        launcher(true);
+    });
+    page.onResourceRequested = function(data, request) {
+        if (!util.isLocal(excludes, data.url)) {
+            requests.push({ referer: util.referer(data.headers), url: data.url, id: data.id });
+>>>>>>> 9ff0c5d38f184c3454915f76c771e1eca94a55ad
         }
     };
 
@@ -166,4 +207,8 @@ function collectData(address) {
     };
 }
 
+<<<<<<< HEAD
 launcher();
+=======
+launcher(true);
+>>>>>>> 9ff0c5d38f184c3454915f76c771e1eca94a55ad
