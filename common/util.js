@@ -87,6 +87,7 @@ function isLocal(excludes, path) {
     return matched;
 }
 
+
 function domain(url) {
     return url.match("^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)")[1];
 }

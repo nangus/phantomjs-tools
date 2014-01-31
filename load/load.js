@@ -29,7 +29,7 @@ var args    = system.args.copyArgs();
 
 
 function usage() {
-    console.log('Usage: external.js <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json] [--mysql URL]');
+    console.log('Usage: % <URL(s)>|<URL(s) file> [<EXCLUDE(s)|EXCLUDE(s) file>] [--json] [--mysql URL]');
     phantom.exit();
 }
 
@@ -37,12 +37,14 @@ if (args.length === 0) {
     usage();
 }
 
-var json        = args.getArg(['--json', '-j'], false);
-var mysql       = args.getArg(['--mysql', '-m'], true);
-var limit       = parseInt(args.getArg(['--limit', '-l'], true)) || 5;
-var addresses   = util.parsePaths(args.shift());
-var excludes    = util.parsePaths(args.shift());
-var finished    = 0;
+var json            = args.getArg(['--json', '-j'], false);
+var abortExternal   = args.getArg(['--abort', '-a'], false);
+var mysql           = args.getArg(['--mysql', '-m'], true);
+var runs            = args.getArg(['-r'],['--runs'] , true) || 1;
+var limit           = parseInt(args.getArg(['--limit', '-l'], true)) || 5;
+var addresses       = util.parsePaths(args.shift());
+var excludes        = util.parsePaths(args.shift());
+var finished        = 0;
 
 if (addresses.length === 0) {
     usage();
@@ -97,7 +99,6 @@ var running     = 1;
 var writingHttp = 0;
 
 function launcher(runs) {
-    console.log('running '+running+ ' writingHttp ' + writingHttp + ' runs '+runs);
     if(runs) running--;
     while(running < limit && addresses.length > 0){
         running++;
@@ -106,19 +107,7 @@ function launcher(runs) {
     if(running < 1 && addresses.length < 1 && writingHttp < 1){
         var urlsDone={};
         //console.dir(phantom.cookies);
-
         //console.dir(phantom.cookies);
-        for(i=0;i< phantom.cookies.length;i++){
-            if(false && phantom.cookies[i].domain.indexOf('.yellowpages.com') != 0 &&
-                phantom.cookies[i].domain.indexOf('www.yellowpages.com') != 0) {
-                console.dir(phantom.cookies[i]);
-            }
-            if(urlsDone[phantom.cookies[i].domain] == undefined){
-                urlsDone[phantom.cookies[i].domain]=phantom.cookies[i].name;
-            }else{
-                urlsDone[phantom.cookies[i].domain]+=','+phantom.cookies[i].name;
-            }
-        }
         if (json) {
             //console.dir(results);
         }
@@ -129,73 +118,39 @@ function launcher(runs) {
 
 function collectData(address) {
     excludes.push(util.domain(address));
-
     var domain=util.fullDomain(address);
-    console.log(domain);
-
     var t = Date.now();
     var page = webpage.create();
     var requests = [];
-    var interalRequests=[];
     var cookCount=0;
 
     page.open(address, function (status) {
         if (status !== 'success') {
             console.log('FAIL to load the address');
         } else {
-            t = Date.now() - t;
-            var successes = flattenAndTallySuccesses(requests).sort(util.reqSort);
-            var failures  = flattenAndTallyFailures(requests).sort(util.reqSort);
-            if (mysql) {
-                writingHttp++;
-                util.doJSON(address, t, successes, failures, function(res) {
-                    util.pushMysql(mysql,res);
-                });
-            } else if (json) {
-                util.doJSON(address, t, successes, failures, function(res) {
-                    results.push(res);
-                });
-            } else {
-                util.doTEXT(address, t, successes, failures, function(res) {
-                    res.forEach(function(url) {
-                        console.log('* ' + url.referer + '\n  -> ' + url.url + ' [' + url.count + ']');
-                    });
-                });
-            }
+            t=Date.now()-t;
+            console.log("page load time "+t)
         }
-
         (page.close||page.release)();
-        console.dir('page cookies '+page.cookies.length);
         launcher(true);
     });
+    page.onError=function(error){ };
     page.onResourceRequested = function(data, request) {
-        if(data.url && 0 == data.url.indexOf(domain)){
-            
-            var curTim=Date.now()-t;
-            console.log(curTim+ " "+data.url.substring(domain.length));
-        }
-        if (!util.isLocal(excludes, data.url)) {
-            requests.push({ referer: util.referer(data.headers), url: data.url, id: data.id,cookies:{} });
+        var tim=Date.now()-t;
+        console.log(tim);
+        if(abortExternal){
+            if(data.method && (data.url.indexOf(domain) == 0 || -1 != data.url.indexOf('jquery.min.js'))){
+                console.log('did not skip '+data.url)
+            }else{
+                console.log('did     skip '+data.url)
+                console.log(data.url);
+                request.abort();
+            }
         }
     };
-    page.onResourceReceived = function(response) {
-        if (!util.isLocal(excludes, response.url)) {
-            var index = 0;
-            requests.forEach(function(request) {
-                if (request.url === response.url && request.id === response.id) {
-                    requests[index].responded = true;
-                }
-                index++;
-            });
-        }
-        /*
-        if(page.cookies.length>curCookie){
-            console.log(page.cookies.length);
-            console.dir(page.cookies.slice(0,page.cookies.length-curCookie));
-            curCookie=page.cookies.length;
-        }
-        //*/
+    page.onResourceError = function(resourceError) {
+            console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')');
+            console.log('Error code: ' + resourceError.errorCode + '. Description: ' + resourceError.errorString);
     };
 }
-
 launcher(true);

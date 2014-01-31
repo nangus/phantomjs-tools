@@ -35,7 +35,6 @@ Array.prototype.getArg = function getArg(flags, hasValue) {
             if (hasValue) {
                 try {
                     var ret = this[pos+1];
-                    console.log('ret: ' + ret);
                     this.splice(pos,2);
                     return ret;
                 } catch (e) {
@@ -87,6 +86,9 @@ function isLocal(excludes, path) {
     return matched;
 }
 
+function fullDomain(url) {
+    return url.match("(^https?\:\/\/[^\/?#]+)(?:[\/?#]|$)")[1];
+}
 function domain(url) {
     return url.match("^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)")[1];
 }
@@ -174,6 +176,7 @@ module.exports = {
     parsePaths: parsePaths,
     isLocal: isLocal,
     domain: domain,
+    fullDomain: fullDomain,
     doJSON: doJSON,
     doTEXT: doTEXT,
     reqSort: reqSort,
