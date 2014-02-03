@@ -6,4 +6,4 @@ done
 wait
 cat $rand.*.out > $rand.out
 rm $rand.*.out
-grep requestsPerSecond $rand.out|awk '{total+=$3} END {print total}'
+grep requestsPerSecond $rand.out|awk '{total+=$2} END {print total}'
