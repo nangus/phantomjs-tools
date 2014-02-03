@@ -13,6 +13,7 @@ var program = require('commander');
 program
   .option('-s , --script [string]' , 'script to be run')
   .option('-r , --runs   [number]' , 'number of runs [1]', parseInt, 1)
+  .option('-u , --scriptRuns   [number]' , 'number of runs [1]', parseInt, 1)
   .option('-j , --json'            , 'output in JSON format')
   .option('-m , --median'          , 'return median value');
 
@@ -54,6 +55,11 @@ var args = program.args;
 if (args.indexOf('--json') === -1) {
     args.push('--json');
 }
+args.push('-a');
+args.push('--runs');
+args.puah('2');
+args.push('--limit');
+args.push('10');
 
 var runner  = new Phapper(script, args);
 var runs    = [];
