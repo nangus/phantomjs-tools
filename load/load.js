@@ -23,6 +23,8 @@ var addresses       = [];
 var running         = 1;
 var runTime         = Date.now();
 var requestCount    = 0;
+var validRequest    = 0;
+var invalidRequest  = 0;
 
 for(var i =0 ; i<runns;i++){
     addresses=addresses.concat(addressPasses);
@@ -39,12 +41,17 @@ function launcher(runs) {
         var rps=Math.round((requestCount/tt)*1000000)/1000;
         console.dir({"totalTime":tt,
             "requests":requestCount,
+            "requestsPerSecond":rps,
+            "validRequests":validRequest,
+            "invalidRequests":invalidRequest,
             "requestsPerSecond":rps});
         phantom.exit();
     }
 };
 
+
 function collectData(address){
+    var timers=[];
     requestCount++;
     var page = require('webpage').create();
     var domain=util.fullDomain(address);
@@ -54,7 +61,10 @@ function collectData(address){
     page.onResourceRequested = function(requestData, request) {
         //console.log("time ",(Date.now()-t));
         if(requestData.method && (requestData.url.indexOf(domain) == 0 || -1 != requestData.url.indexOf('jquery.min.js'))){
-            requestCount++;
+            if(-1 == requestData.url.indexOf('jquery.min.js')){
+                timers[requestData.id]=Date.now();
+                requestCount++;
+            }
         }else{
             if(abortExternal){
                 //console.log('Aborting: ' + requestData['url']);
@@ -63,6 +73,22 @@ function collectData(address){
                 requestCount++;
             }
         }
+    };
+    page.onResourceReceived = function(res){
+        if(res.url && timers[res.id]){
+            if(res.status < 300){
+                validRequest++;
+            }else{
+                invalidRequest++;
+            }
+            console.log(Date.now()-timers[res.id],"\t",res.status,"\t",res.url);
+            //timers[res.id]=0;
+            //console.log(Date.now()-timers[res.id])
+            //console.log(res.status);
+        }
+        //console.dir(res);
+        //console.log(res.id);
+        //console.log(res.status);
     };
     page.open(address, function(status) {
         var tim=Date.now()-t;
