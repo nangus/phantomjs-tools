@@ -6,7 +6,6 @@ var util    = require('../common/util'),
     fs      = require('fs'),
     args    = system.args.copyArgs();
 
-
 function usage() {
     console.log('Usage: % <URL(s)>|<URL(s) file> --file outputFile [--runs #] [--limit #]'+
     '\n\t--file  - destination file for the httperf wsesslog file'+
@@ -32,6 +31,7 @@ if( fileOutput === ''){
 //blank file before start
 fs.write(fileOutput,'','w');
 
+//a simple way to extend the number of times that we want to run
 for(var i =0 ; i<runns-1;i++){
     addresses.push(addresses[i]);
 }
@@ -49,14 +49,18 @@ function launcher(runs) {
 
 
 function collectData(address){
-    var incomp=true;
-    var session='';
-    var timers=[];
-    var page = require('webpage').create();
-    var domain=url.match("(^https?\:\/\/[^\/?#]+)(?:[\/?#]|$)")[1];
-    var t = Date.now();
+    var session = '';
+    var page    = require('webpage').create();
+    var domain  = url.match("(^https?\:\/\/[^\/?#]+)(?:[\/?#]|$)")[1];
+    var t       = Date.now();
+
+    //debating dropping these lines they are only really needed when we are aborting requests
     page.onResourceError = function(resourceError) { };
     page.onError=function(error){ };
+
+    //we do not care about the responce
+    page.onResourceReceived = function(res){};
+
     page.onResourceRequested = function(requestData, request) {
         if(requestData.url.indexOf(domain)==0){
             var sesstring='';
@@ -65,6 +69,7 @@ function collectData(address){
             }
             sesstring+=requestData.url.substring(domain.length);
             if(requestData.method === "POST"){
+                //this requires version 1.10 of phantomjs
                 sesstring+=' method=POST content="'+requestData.postData+'"';
             }
             if(requestData.id !== 1){
@@ -73,7 +78,7 @@ function collectData(address){
             session+=sesstring+'\n';
         }
     };
-    page.onResourceReceived = function(res){};
+
     page.open(address, function(status) {
         if (status === 'success') {
             fs.write(fileOutput,session+'\n','a');
@@ -84,5 +89,6 @@ function collectData(address){
         launcher(true);
     });
 };
+//Here we go!
 launcher(true);
 
