@@ -13,6 +13,7 @@ var program = require('commander');
 program
   .option('-s , --script [string]' , 'script to be run')
   .option('-r , --runs   [number]' , 'number of runs [1]', parseInt, 1)
+  .option('-u , --scriptRuns   [number]' , 'number of runs [1]', parseInt, 1)
   .option('-j , --json'            , 'output in JSON format')
   .option('-m , --median'          , 'return median value');
 
@@ -43,6 +44,8 @@ try {
         if (fs.statSync(s).isFile()) {
             script = s;
         }
+    }else{
+        script=program.script;
     }
 } catch(e) {
     console.error("ERROR: '%s' isn't a valid script", program.script);
@@ -79,6 +82,7 @@ async.parallel(runs,
         }
         var sets = {};
         results.forEach(function(res) {
+            console.log('responces '+res);
             res.forEach(function(r) {
                 var address = r.address;
                 delete r.address;

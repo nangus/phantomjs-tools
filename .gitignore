@@ -13,6 +13,7 @@ urls
 pids
 logs
 results
+urls
 
 npm-debug.log
 node_modules
