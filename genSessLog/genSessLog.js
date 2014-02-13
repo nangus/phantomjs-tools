@@ -10,8 +10,7 @@ var util    = require('../common/util'),
 function usage() {
     console.log('Usage: % <URL(s)>|<URL(s) file> --file outputFile [--runs #] [--limit #]'+
     '\n\t--file  - destination file for the httperf wsesslog file'+
-    '\n\t--runs  - number of extra runs to preform'+
-    '\n\t--limit - max concurrent runns to preform');
+    '\n\t--runs  - number of extra runs to preform');
     phantom.exit();
 }
 
@@ -26,9 +25,8 @@ if (system.args.length < 2) {
 
 var runns           = args.getArg(['-r','--runs'] , true) || 1;
 var fileOutput      = args.getArg(['-f','--file'] , true) || '';
-var limit           = parseInt(args.getArg(['--limit', '-l'], true)) || 5;
+var limit           = 1;
 var addresses       = util.parsePaths(args.shift());
-var excludes        = util.parsePaths(args.shift());
 var running         = 1;
 
 if( fileOutput === ''){
@@ -38,8 +36,7 @@ if( fileOutput === ''){
 fs.write(fileOutput,'','w');
 
 //a simple way to extend the number of times that we want to run
-var i;
-for(i =0 ; i<runns-1;i++){
+for(var i =0 ; i<runns-1;i++){
     addresses.push(addresses[i]);
 }
 
@@ -54,12 +51,14 @@ function launcher(runs) {
     }
 };
 
-
 function collectData(address){
     var session = '';
     var page    = require('webpage').create();
     var domain  = address.match("(^https?\:\/\/[^\/?#]+)(?:[\/?#]|$)")[1];
-    var t       = Date.now();
+    var tim     = Date.now();
+    var rCount  = 0;
+    phantom.clearCookies();
+    console.log('generating list for '+address);
 
     //debating dropping these lines they are only really needed when we are aborting requests
     page.onResourceError = function(resourceError) { };
@@ -69,7 +68,8 @@ function collectData(address){
     page.onResourceReceived = function(res){};
 
     page.onResourceRequested = function(requestData, request) {
-        if(requestData.url.indexOf(domain)==0){
+        if(requestData.url.indexOf(domain)==0 && requestData.url.indexOf('images') === -1){
+            rCount++;
             var sesstring='';
             if(requestData.id !== 1){
                 sesstring='\t';
@@ -80,7 +80,7 @@ function collectData(address){
                 sesstring+=' method=POST content="'+requestData.postData+'"';
             }
             if(requestData.id !== 1){
-                sesstring+=' think='+((Date.now()-t)/1000);
+                sesstring+=' think='+((Date.now()-tim)/1000);
             }
             session+=sesstring+'\n';
         }
