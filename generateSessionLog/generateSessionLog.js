@@ -6,12 +6,18 @@ var util    = require('../common/util'),
     fs      = require('fs'),
     args    = system.args.copyArgs();
 
+
 function usage() {
     console.log('Usage: % <URL(s)>|<URL(s) file> --file outputFile [--runs #] [--limit #]'+
     '\n\t--file  - destination file for the httperf wsesslog file'+
     '\n\t--runs  - number of extra runs to preform'+
     '\n\t--limit - max concurrent runns to preform');
     phantom.exit();
+}
+
+if( phantom.version.major <=1 && phantom.version.minor<10){
+    console.log('generate session log requires a minium phantomjs version of 1.10');
+    usage();
 }
 
 if (system.args.length < 2) {
