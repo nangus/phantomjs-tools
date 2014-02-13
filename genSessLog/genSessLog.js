@@ -38,7 +38,8 @@ if( fileOutput === ''){
 fs.write(fileOutput,'','w');
 
 //a simple way to extend the number of times that we want to run
-for(var i =0 ; i<runns-1;i++){
+var i;
+for(i =0 ; i<runns-1;i++){
     addresses.push(addresses[i]);
 }
 
@@ -57,7 +58,7 @@ function launcher(runs) {
 function collectData(address){
     var session = '';
     var page    = require('webpage').create();
-    var domain  = url.match("(^https?\:\/\/[^\/?#]+)(?:[\/?#]|$)")[1];
+    var domain  = address.match("(^https?\:\/\/[^\/?#]+)(?:[\/?#]|$)")[1];
     var t       = Date.now();
 
     //debating dropping these lines they are only really needed when we are aborting requests
