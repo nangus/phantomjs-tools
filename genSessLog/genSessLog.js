@@ -8,7 +8,7 @@ var util    = require('../common/util'),
 
 
 function usage() {
-    console.log('Usage: % <URL(s)>|<URL(s) file> --file outputFile [--runs #] [--limit #]'+
+    console.log('Usage: % <URL(s)>|<URL(s) file> --file outputFile [--runs #]'+
     '\n\t--file  - destination file for the httperf wsesslog file'+
     '\n\t--runs  - number of extra runs to preform');
     phantom.exit();
@@ -56,7 +56,6 @@ function collectData(address){
     var page    = require('webpage').create();
     var domain  = address.match("(^https?\:\/\/[^\/?#]+)(?:[\/?#]|$)")[1];
     var tim     = Date.now();
-    var rCount  = 0;
     phantom.clearCookies();
     console.log('generating list for '+address);
 
@@ -69,7 +68,6 @@ function collectData(address){
 
     page.onResourceRequested = function(requestData, request) {
         if(requestData.url.indexOf(domain)==0 && requestData.url.indexOf('images') === -1){
-            rCount++;
             var sesstring='';
             if(requestData.id !== 1){
                 sesstring='\t';
