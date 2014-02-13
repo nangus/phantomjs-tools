@@ -75,7 +75,7 @@ function collectData(address){
             sesstring+=requestData.url.substring(domain.length);
             if(requestData.method === "POST"){
                 //this requires version 1.10 of phantomjs
-                sesstring+=' method=POST content="'+requestData.postData+'"';
+                sesstring+=' method=POST contents="'+requestData.postData+'"';
             }
             if(requestData.id !== 1){
                 sesstring+=' think='+((Date.now()-tim)/1000);
