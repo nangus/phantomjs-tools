@@ -92,20 +92,6 @@ function fullDomain(url) {
 function domain(url) {
     return url.match("^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)")[1];
 }
-/**
- * push the json to a listening process.
- */
-function pushMysql(url,data){
-    var pg = webpage.create();
-    pg.customHeaders = {'Content-Type':'application/json'};
-    pg.open(url,'post',JSON.stringify(data),function(stat){
-
-        (pg.close||pg.release)();
-        writingHttp--;
-        launcher(false);
-
-    });
-}
 
 function doJSON(address, time, successes, failures, callback) {
     var reqs = [];
@@ -172,7 +158,6 @@ function referer(headers) {
 
 module.exports = {
     trim: trim,
-    pushMysql: pushMysql,
     parsePaths: parsePaths,
     isLocal: isLocal,
     domain: domain,

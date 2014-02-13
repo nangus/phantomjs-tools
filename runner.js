@@ -44,6 +44,8 @@ try {
         if (fs.statSync(s).isFile()) {
             script = s;
         }
+    }else{
+        script=program.script;
     }
 } catch(e) {
     console.error("ERROR: '%s' isn't a valid script", program.script);
@@ -55,11 +57,6 @@ var args = program.args;
 if (args.indexOf('--json') === -1) {
     args.push('--json');
 }
-args.push('-a');
-args.push('--runs');
-args.puah('2');
-args.push('--limit');
-args.push('10');
 
 var runner  = new Phapper(script, args);
 var runs    = [];
@@ -85,6 +82,7 @@ async.parallel(runs,
         }
         var sets = {};
         results.forEach(function(res) {
+            console.log('responces '+res);
             res.forEach(function(r) {
                 var address = r.address;
                 delete r.address;
