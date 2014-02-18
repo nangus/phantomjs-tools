@@ -35,7 +35,6 @@ Array.prototype.getArg = function getArg(flags, hasValue) {
             if (hasValue) {
                 try {
                     var ret = this[pos+1];
-                    console.log('ret: ' + ret);
                     this.splice(pos,2);
                     return ret;
                 } catch (e) {
