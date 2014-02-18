@@ -10,6 +10,7 @@ var util    = require('../common/util'),
 function usage() {
     console.log('Usage: % <URL(s)>|<URL(s) file> --file outputFile [--runs #] [--limit #]'+
     '\n\t--file  - destination file for the httperf wsesslog file'+
+    '\n\t--empty - blank the output file before start'+
     '\n\t--runs  - number of extra runs to preform');
     phantom.exit();
 }
@@ -23,17 +24,20 @@ if (system.args.length < 2) {
     usage();
 }
 
-var runns           = args.getArg(['-r','--runs'] , true) || 1;
-var fileOutput      = args.getArg(['-f','--file'] , true) || '';
-var limit           = 1;
-var addresses       = util.parsePaths(args.shift());
-var running         = 1;
+var runns       = args.getArg(['-r','--runs'],  true)  || 1;
+var fileOutput  = args.getArg(['-f','--file'],  true)  || '';
+var emptyOutput = args.getArg(['-e','--empty'], false) || false;
+var limit       = 1;
+var addresses   = util.parsePaths(args.shift());
+var running     = 1;
 
 if( fileOutput === ''){
     usage();
 }
-//blank file before start
-fs.write(fileOutput,'','w');
+if(emptyOutput){
+    //blank file before start
+    fs.write(fileOutput,'','w');
+}
 
 //a simple way to extend the number of times that we want to run
 for(var i =0 ; i<runns-1;i++){
