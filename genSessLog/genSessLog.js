@@ -10,7 +10,6 @@ var util    = require('../common/util'),
 function usage() {
     console.log('Usage: % <URL(s)>|<URL(s) file> --file outputFile [--runs #]'+
     '\n\t--file  - destination file for the httperf wsesslog file'+
-    '\n\t--empty - blank the output file before start'+
     '\n\t--runs  - number of extra runs to preform');
     phantom.exit();
 }
@@ -24,20 +23,18 @@ if (system.args.length < 2) {
     usage();
 }
 
-var runns       = args.getArg(['-r','--runs'],  true)  || 1;
-var fileOutput  = args.getArg(['-f','--file'],  true)  || '';
-var emptyOutput = args.getArg(['-e','--empty'], false) || false;
-var limit       = 1;
-var addresses   = util.parsePaths(args.shift());
-var running     = 1;
+var runns           = args.getArg(['-r','--runs'] , true) || 1;
+var fileOutput      = args.getArg(['-f','--file'] , true) || '';
+var limit           = 1;
+var addresses       = util.parsePaths(args.shift());
+var running         = 1;
+var failures        = 0;
 
 if( fileOutput === ''){
     usage();
 }
-if(emptyOutput){
-    //blank file before start
-    fs.write(fileOutput,'','w');
-}
+//blank file before start
+//fs.write(fileOutput,'','w');
 
 //a simple way to extend the number of times that we want to run
 for(var i =0 ; i<runns-1;i++){
@@ -45,6 +42,9 @@ for(var i =0 ; i<runns-1;i++){
 }
 
 function launcher(runs) {
+    if(failures>5){
+        phantom.exit(1);
+    }
     if(runs) running--;
     while(running < limit && addresses.length > 0){
         running++;
@@ -60,6 +60,7 @@ function collectData(address){
     var page    = require('webpage').create();
     var domain  = address.match("(^https?\:\/\/[^\/?#]+)(?:[\/?#]|$)")[1];
     var tim     = Date.now();
+    page.settings.resourceTimeout = 10000;
     phantom.clearCookies();
     console.log('generating list for '+address);
 
@@ -93,6 +94,8 @@ function collectData(address){
             fs.write(fileOutput,session+'\n','a');
         } else {
             console.log('Unable to load the address!');
+            failures++;
+            addresses.push(address);
         }
         (page.close||page.release)();
         launcher(true);
