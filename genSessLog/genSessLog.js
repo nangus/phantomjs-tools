@@ -60,6 +60,7 @@ function collectData(address){
     var page    = require('webpage').create();
     var domain  = address.match("(^https?\:\/\/[^\/?#]+)(?:[\/?#]|$)")[1];
     var tim     = Date.now();
+    var dupes   =[];
     page.settings.resourceTimeout = 10000;
     phantom.clearCookies();
     console.log('generating list for '+address);
@@ -72,20 +73,30 @@ function collectData(address){
     page.onResourceReceived = function(res){};
 
     page.onResourceRequested = function(requestData, request) {
-        if(requestData.url.indexOf(domain)==0 && requestData.url.indexOf('images') === -1){
-            var sesstring='';
-            if(requestData.id !== 1){
-                sesstring='\t';
+        if(requestData.url.indexOf(domain)==0 && !dupes[requestData.url]){
+            dupes[requestData.url]=1;
+            var imageMatch=requestData.url.match(/(jpeg$|jpg$|gif$|png$)/);
+            if(!imageMatch){
+                var sesstring='';
+                if(requestData.id !== 1){
+                    sesstring='\t';
+                }
+                sesstring+=requestData.url.substring(domain.length);
+                if(requestData.method === "POST"){
+                    //httperf was choaking on requests that were too big
+                    var data=requestData.postData;
+                    if( data.length > 1000){
+                        data=data.substring(0,1000);
+                        data=data.substring(0,data.lastIndexOf('&'));
+                    }
+                    //this requires version 1.10 of phantomjs
+                    sesstring+=' method=POST contents="'+data+'"';
+                }
+                if(requestData.id !== 1){
+                    sesstring+=' think='+((Date.now()-tim)/1000);
+                }
+                session+=sesstring+'\n';
             }
-            sesstring+=requestData.url.substring(domain.length);
-            if(requestData.method === "POST"){
-                //this requires version 1.10 of phantomjs
-                sesstring+=' method=POST contents="'+requestData.postData+'"';
-            }
-            if(requestData.id !== 1){
-                sesstring+=' think='+((Date.now()-tim)/1000);
-            }
-            session+=sesstring+'\n';
         }
     };
 

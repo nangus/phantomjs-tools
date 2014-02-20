@@ -27,11 +27,11 @@ page.open(addr, function(status) {
         });
         console.log(result);
         if(result.indexOf('TypeError') == 0){
-            phantom.exit(1);
+            phantom.exit(2);
         }
     } else {
         console.log('Unable to load the address!');
-        phantom.exit(2);
+        phantom.exit(3);
     }
     (page.close||page.release)();
     phantom.exit();
